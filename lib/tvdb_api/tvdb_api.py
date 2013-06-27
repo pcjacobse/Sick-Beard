@@ -834,6 +834,13 @@ class Tvdb:
             seas_no = int(float(elem_seasnum.text))
             ep_no = int(float(elem_epno.text))
 
+            if sid == 73141:   
+                if seas_no==2: 
+                    seas_no=1
+                    ep_no=ep_no+7
+                if seas_no>2:
+                    seas_no=seas_no-1
+
             for cur_item in cur_ep.getchildren():
                 tag = cur_item.tag.lower()
                 value = cur_item.text
