@@ -106,6 +106,7 @@ WEB_USERNAME = None
 WEB_PASSWORD = None
 WEB_HOST = None
 WEB_IPV6 = None
+WEB_WHITELIST = None
 
 ANON_REDIRECT = None
 DISPLAY_ALL_SEASONS = None
@@ -334,7 +335,9 @@ def initialize(consoleLogging=True):
 
     with INIT_LOCK:
 
-        global ACTUAL_LOG_DIR, LOG_DIR, WEB_PORT, WEB_LOG, WEB_ROOT, WEB_USERNAME, WEB_PASSWORD, WEB_HOST, WEB_IPV6, USE_API, API_KEY, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, \
+
+        global ACTUAL_LOG_DIR, LOG_DIR, WEB_PORT, WEB_LOG, WEB_ROOT, WEB_USERNAME, WEB_PASSWORD, WEB_HOST, WEB_IPV6, WEB_WHITELIST, USE_API, API_KEY, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, \
+
                 USE_NZBS, USE_TORRENTS, NZB_METHOD, NZB_DIR, DOWNLOAD_PROPERS, \
                 SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_HOST, \
                 NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_HOST, currentSearchScheduler, backlogSearchScheduler, \
@@ -398,6 +401,7 @@ def initialize(consoleLogging=True):
         WEB_LOG = bool(check_setting_int(CFG, 'General', 'web_log', 0))
         WEB_USERNAME = check_setting_str(CFG, 'General', 'web_username', '')
         WEB_PASSWORD = check_setting_str(CFG, 'General', 'web_password', '')
+        WEB_WHITELIST = check_setting_str(CFG, 'General', 'web_whitelist', '')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
 
         ANON_REDIRECT = check_setting_str(CFG, 'General', 'anon_redirect', 'http://dereferer.org/?')
@@ -1004,6 +1008,7 @@ def save_config():
     new_config['General']['web_password'] = WEB_PASSWORD
     new_config['General']['anon_redirect'] = ANON_REDIRECT
     new_config['General']['display_all_seasons'] = DISPLAY_ALL_SEASONS
+    new_config['General']['web_whitelist'] = WEB_WHITELIST
     new_config['General']['use_api'] = int(USE_API)
     new_config['General']['api_key'] = API_KEY
     new_config['General']['enable_https'] = int(ENABLE_HTTPS)
