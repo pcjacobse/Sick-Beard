@@ -229,55 +229,54 @@ def initWebServer(options={}):
     cherrypy.server.start()
     cherrypy.server.wait()
 
-        def addressInNetwork(ip,net):
-                """Is an address in a network. 
-                   Returns: 
-                      True - If 'ip' is an address in 'net' which is a string in the format x.x.x.x/y
-                      False - If 'ip' not in 'net' or if there is an error."""
+    def addressInNetwork(ip,net):
+            """Is an address in a network. 
+               Returns: 
+                  True - If 'ip' is an address in 'net' which is a string in the format x.x.x.x/y
+                  False - If 'ip' not in 'net' or if there is an error."""
+            
+            if net == "":
+                return False
+            
+            try:
+                ipaddr = struct.unpack('>L',socket.inet_aton(ip))[0]
+                netaddr,bits = net.split('/')
+                ipnet = struct.unpack('>L',socket.inet_aton(netaddr))[0]
+                mask = ((2L<<(int(bits))-1) - 1)<<(32-int(bits))
+
+                return ipaddr & mask == ipnet & mask
+            except ValueError: # Will get here if whitelist is incorrectly formatted
+                logger.log(u'Configuration Error: \'whitelist\' option is malformed. Value: %s, assuming no whitelisted hosts until restart.' % net, logger.ERROR )
+                options['whitelist'] = ""
                 
-                if net == "":
-                    return False
-                
-                try:
-                    ipaddr = struct.unpack('>L',socket.inet_aton(ip))[0]
-                    netaddr,bits = net.split('/')
-                    ipnet = struct.unpack('>L',socket.inet_aton(netaddr))[0]
-                    mask = ((2L<<(int(bits))-1) - 1)<<(32-int(bits))
+                return False
 
-                    return ipaddr & mask == ipnet & mask
-                except ValueError: # Will get here if whitelist is incorrectly formatted
-                    logger.log(u'Configuration Error: \'whitelist\' option is malformed. Value: %s, assuming no whitelisted hosts until restart.' % net, logger.ERROR )
-                    options['whitelist'] = ""
-                    
-                    return False
+    def check_ip():
+            """Will check current request address against 'whitelist' and will disable authentication with those that match. 'whitelist' is a list in the form of 'a.a.a.a/b[,c.c.c.c/d]'"""
+            try:
+                # Iterate through whitelisted networks
+                for whitelist_network in options['whitelist'].split(','): 
+                        # Check if current network matches remote address
+                        if addressInNetwork(cherrypy.request.remote.ip, whitelist_network.strip()):
 
-        def check_ip():
-                """Will check current request address against 'whitelist' and will disable authentication with those that match. 'whitelist' is a list in the form of 'a.a.a.a/b[,c.c.c.c/d]'"""
-                try:
-                    # Iterate through whitelisted networks
-                    for whitelist_network in options['whitelist'].split(','): 
-                            # Check if current network matches remote address
-                            if addressInNetwork(cherrypy.request.remote.ip, whitelist_network.strip()):
+                                # Search for and remove basic_auth hook from list of hooks to execute
+                                old_hooks = cherrypy.request.hooks['before_handler']
+                                new_hooks = []
+                                for hook in old_hooks:
+                                        if hook.callback != cherrypy.lib.auth_basic.basic_auth:
+                                                new_hooks.append(hook)
 
-                                    # Search for and remove basic_auth hook from list of hooks to execute
-                                    old_hooks = cherrypy.request.hooks['before_handler']
-                                    new_hooks = []
-                                    for hook in old_hooks:
-                                            if hook.callback != cherrypy.lib.auth_basic.basic_auth:
-                                                    new_hooks.append(hook)
+                                cherrypy.request.hooks['before_handler'] = new_hooks
 
-                                    cherrypy.request.hooks['before_handler'] = new_hooks
+                                # No need to continue checking if already matched once
+                                return True 
+            except Exception:
+                logger.log(u'webserverInit.py:check_ip() - Error while processing whitelist. whitelist = %s' % options['whitelist'], logger.ERROR)
 
-                                    # No need to continue checking if already matched once
-                                    return True 
-                except Exception:
-                    logger.log(u'webserverInit.py:check_ip() - Error while processing whitelist. whitelist = %s' % options['whitelist'], logger.ERROR)
+            return True
 
-                return True
+    if options['whitelist'] != "":
+            checkipaddress = cherrypy.Tool('on_start_resource', check_ip, 1)
+            cherrypy.tools.checkipaddress = checkipaddress
 
-        if options['whitelist'] != "":
-                checkipaddress = cherrypy.Tool('on_start_resource', check_ip, 1)
-                cherrypy.tools.checkipaddress = checkipaddress
-
-                app.merge({'/': { 'tools.checkipaddress.on': True } })
-
+            app.merge({'/': { 'tools.checkipaddress.on': True } })
